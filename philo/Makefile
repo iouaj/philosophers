@@ -4,7 +4,10 @@ CC = cc
 CFLAGS = -Wall -Wextra -Werror
 
 FILES =	philo \
-		ft_atoi
+		ft_atoi \
+		exit \
+		action \
+		utils
 
 SRC = $(addsuffix .c, $(FILES))
 
