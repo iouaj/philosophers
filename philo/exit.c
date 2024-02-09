@@ -6,7 +6,7 @@
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/07 15:44:14 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/02/07 17:48:10 by iouajjou         ###   ########.fr       */
+/*   Updated: 2024/02/09 15:30:24 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,7 +19,7 @@ static void	freefork(t_data *d)
 	i = 0;
 	pthread_mutex_destroy(&d->tab_philo[i].l_fork->mutex);
 	free(d->tab_philo[i].l_fork);
-	while (i < d->env.nb_philo && d->env.nb_philo != 1)
+	while (i < d->env->nb_philo - 1 && d->env->nb_philo != 1)
 	{
 		pthread_mutex_destroy(&d->tab_philo[i].r_fork->mutex);
 		free(d->tab_philo[i].r_fork);
@@ -31,6 +31,8 @@ void	freeall(t_data *d)
 {
 	freefork(d);
 	free(d->tab_philo);
+	pthread_mutex_destroy(&d->env->print_mutex);
+	free(d->env);
 }
 
 void	error(t_data *d)
