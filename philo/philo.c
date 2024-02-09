@@ -6,7 +6,7 @@
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/06 13:52:13 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/02/09 17:53:08 by iouajjou         ###   ########.fr       */
+/*   Updated: 2024/02/09 18:12:15 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -68,7 +68,7 @@ void	*nothing(void *data)
 		}
 		eat(philo);
 		sleeping(philo);
-		// is_dead(philo);
+		is_dead(philo);
 	}
 	return (NULL);
 }
@@ -137,7 +137,7 @@ int	main(int argc, char *argv[])
 	while (i < d.env->nb_philo)
 	{
 		usleep(d.env->time_to_die);
-		is_dead(&d.tab_philo[i]);
+		pthread_join(d.tab_philo[i].thread, NULL);
 		i++;
 	}
 	freeall(&d);
