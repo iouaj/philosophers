@@ -26,11 +26,11 @@ typedef struct	s_fork {
 
 typedef struct s_env {
 	struct timeval	start;
-	int			nb_philo;
-	int			time_to_die;//in milliseconds
-	int			time_to_eat;// in milliseconds
-	int			time_to_sleep;// in milliseconds
-	int			number_of_times_each_philo_must_eat;
+	int				nb_philo;
+	int				time_to_die;//in milliseconds
+	int				time_to_eat;// in milliseconds
+	int				time_to_sleep;// in milliseconds
+	int				number_of_times_each_philo_must_eat;
 	pthread_mutex_t	print_mutex;
 	pthread_mutex_t	time_mutex;
 }	t_env;

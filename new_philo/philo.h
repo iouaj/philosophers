@@ -6,7 +6,7 @@
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/02/28 12:40:17 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/02/28 18:40:51 by iouajjou         ###   ########.fr       */
+/*   Updated: 2024/03/08 13:39:15 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -50,7 +50,7 @@ typedef struct s_philo
 }	t_philo;
 
 t_fork	*init_fork(void);
-int	main_one(t_env env);
+int		main_one(t_env env);
 void	print_action(t_philo *philo, int value);
 void	destroy_mutex(t_env *env);
 void	*checker(void *arg);
