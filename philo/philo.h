@@ -5,62 +5,64 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/02/06 13:52:27 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/02/09 17:27:04 by iouajjou         ###   ########.fr       */
+/*   Created: 2024/02/28 12:40:17 by iouajjou          #+#    #+#             */
+/*   Updated: 2024/03/01 16:29:24 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef PHILO_H
 # define PHILO_H
 
-# include <stdio.h>
-# include <stdlib.h>
-# include <unistd.h>
-# include <string.h>
-# include <sys/time.h>
 # include <pthread.h>
+# include <stdio.h>
+# include <sys/time.h>
+# include <unistd.h>
+# include <stdlib.h>
 
-typedef struct	s_fork {
+typedef struct s_fork
+{
 	pthread_mutex_t	mutex;
 }	t_fork;
 
-typedef struct s_env {
+typedef struct s_env
+{
+	pthread_mutex_t	print;
+	pthread_mutex_t	env_mutex;
+	int				dead;
 	struct timeval	start;
-	int				nb_philo;
-	int				time_to_die;//in milliseconds
-	int				time_to_eat;// in milliseconds
-	int				time_to_sleep;// in milliseconds
-	int				number_of_times_each_philo_must_eat;
-	pthread_mutex_t	print_mutex;
-	pthread_mutex_t	time_mutex;
+	int				number_of_philosophers;
+	int				time_to_die;
+	int				time_to_eat;
+	int				time_to_sleep;
+	int				number_of_times_each_philosopher_must_eat;
+	struct s_philo	*philos;
+	pthread_t		checker;
 }	t_env;
 
-
-typedef struct	s_philo {
-	int				id;
-	int				count_eat;
-	pthread_t		thread;
-	int				status;
-	struct timeval	last;
-	t_fork			*r_fork;
-	t_fork			*l_fork;
-	t_env			*env;
+typedef struct s_philo
+{
+	int					id;
+	long unsigned int	last;
+	int					eat;
+	pthread_mutex_t		eat_mutex;
+	pthread_t			thread;
+	t_fork				*r_fork;
+	t_fork				*l_fork;
+	t_env				*env;
 }	t_philo;
 
-
-typedef struct s_data {
-	t_env		*env;
-	t_philo		*tab_philo;
-}	t_data;
-
-int	ft_atoi(const char *nptr);
-//exit.c
-void	error(t_data *d);
-void	freeall(t_data *d);
-//action.c
-void	eat(t_philo *philo);
-void	sleeping(t_philo *philo);
-//utils.c
-long unsigned int	gettime(t_philo *philo);
+int					create(pthread_t *thread, void *(*f)(void *), void *arg);
+void				thread_error(t_env *env, int index);
+void				error(t_env *env, int value);
+t_fork				*init_fork(void);
+int					main_one(t_env env);
 void				print_action(t_philo *philo, int value);
+void				destroy_mutex(t_env *env);
+void				*checker(void *arg);
+void				sleeping(t_philo *philo);
+void				eat(t_philo *philo);
+int					is_philo_dead(t_env *env);
+long unsigned int	gettime(t_env *env);
+int					ft_atoi(const char *nptr);
+int					end_eat(t_philo *philo);
 #endif

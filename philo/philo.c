@@ -5,141 +5,131 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/02/06 13:52:13 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/02/09 18:12:15 by iouajjou         ###   ########.fr       */
+/*   Created: 2024/02/28 12:49:58 by iouajjou          #+#    #+#             */
+/*   Updated: 2024/03/11 17:56:41 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-t_data	init_data(int argc, char *argv[])
+t_env	init_env(int argc, char *argv[])
 {
-	t_data	data;
+	t_env	env;
 
-	data.env = malloc(sizeof(t_env));
-	if (!data.env)
-		error(&data);
-	data.env->nb_philo = ft_atoi(argv[1]);
-	data.env->time_to_die = ft_atoi(argv[2]);
-	data.env->time_to_eat = ft_atoi(argv[3]);
-	data.env->time_to_sleep = ft_atoi(argv[4]);
+	env.number_of_philosophers = ft_atoi(argv[1]);
+	env.time_to_die = ft_atoi(argv[2]);
+	env.time_to_eat = ft_atoi(argv[3]);
+	env.time_to_sleep = ft_atoi(argv[4]);
 	if (argc == 6)
-		data.env->number_of_times_each_philo_must_eat = ft_atoi(argv[5]);
+		env.number_of_times_each_philosopher_must_eat = ft_atoi(argv[5]);
 	else
-		data.env->number_of_times_each_philo_must_eat = -1;
-	data.tab_philo = malloc(sizeof(t_philo) * data.env->nb_philo);
-	if (!data.tab_philo)
-		error(&data);
-	if (pthread_mutex_init(&data.env->print_mutex, NULL))
-		exit(EXIT_FAILURE);
-	gettimeofday(&data.env->start, NULL);
-	return (data);
+		env.number_of_times_each_philosopher_must_eat = -1;
+	gettimeofday(&env.start, NULL);
+	if (pthread_mutex_init(&env.print, NULL))
+		error(&env, 0);
+	if (pthread_mutex_init(&env.env_mutex, NULL))
+		error(&env, 0);
+	env.dead = 0;
+	env.philos = malloc(sizeof(t_philo) * env.number_of_philosophers);
+	if (!env.philos)
+		error(&env, 1);
+	return (env);
 }
 
-void	is_dead(t_philo *philo)
-{
-	struct	timeval	current_time;
-
-	gettimeofday(&current_time, NULL);
-	if (philo->status && current_time.tv_usec >= philo->last.tv_usec + (philo->env->time_to_die * 1000))
-	{
-		print_action(philo, 4);
-		philo->status = 0;
-	}
-}
-
-void	*nothing(void *data)
+void	*routine(void *arg)
 {
 	t_philo	*philo;
-	int		pass;
 
-	philo = (t_philo *) data;
-	pass = 0;
-	// printf("Thread %d create\n", philo->id);
-	while (philo->status)
+	philo = (t_philo *) arg;
+	print_action(philo, 0);
+	usleep(philo->id % 2 * (philo->env->time_to_eat * 1000) / 4);
+	pthread_mutex_lock(&philo->env->env_mutex);
+	while (!philo->env->dead && !end_eat(philo))
 	{
-		if (philo->count_eat == philo->env->number_of_times_each_philo_must_eat)
-			philo->status = 0;
-		print_action(philo, 0);
-		if (!pass && philo->id % 2 == 1)
-		{
-			usleep(philo->env->time_to_eat);
-			pass = 1;
-		}
+		pthread_mutex_unlock(&philo->env->env_mutex);
 		eat(philo);
+		if (philo->env->number_of_times_each_philosopher_must_eat != -1)
+		{
+			pthread_mutex_lock(&philo->eat_mutex);
+			philo->eat++;
+			pthread_mutex_unlock(&philo->eat_mutex);
+		}
 		sleeping(philo);
-		is_dead(philo);
+		print_action(philo, 0);
+		if (philo->env->number_of_philosophers % 2 == 1
+			&& philo->env->time_to_eat >= philo->env->time_to_sleep)
+			usleep(philo->env->time_to_eat * 1000);
+		pthread_mutex_lock(&philo->env->env_mutex);
 	}
+	pthread_mutex_unlock(&philo->env->env_mutex);
 	return (NULL);
 }
 
-t_fork	*init_fork(void)
-{
-	t_fork *fork;
-
-	fork = malloc(sizeof(t_fork));
-	if (!fork)
-		exit(EXIT_FAILURE);
-	if (pthread_mutex_init(&fork->mutex, NULL))
-		exit(EXIT_FAILURE);
-	return (fork);
-}
-
-void	launch_thread(t_data *d)
+void	launch_thread(t_env *env)
 {
 	int	i;
-	t_fork *last_fork;
+
+	i = 0;
+	while (i < env->number_of_philosophers)
+	{
+		if (create(&env->philos[i].thread, &routine, (void *)&env->philos[i]))
+			thread_error(env, i);
+		i++;
+	}
+}
+
+void	launch_philo(t_env *env)
+{
+	int		i;
+	t_fork	*last_fork;
 
 	i = 0;
 	last_fork = init_fork();
-	while (i < d->env->nb_philo)
+	pthread_mutex_lock(&env->env_mutex);
+	while (env->number_of_philosophers > i)
 	{
-		d->tab_philo[i].id = i;
-		d->tab_philo[i].status = 1;
-		d->tab_philo[i].l_fork = last_fork;
-		d->tab_philo[i].env = d->env;
-		d->tab_philo[i].count_eat = 0;
-		if (d->env->nb_philo != 1)
-		{
-			if (i == d->env->nb_philo - 1)
-				d->tab_philo[i].r_fork = d->tab_philo[0].l_fork;
-			else
-				d->tab_philo[i].r_fork = init_fork();
-			last_fork = d->tab_philo[i].r_fork;
-		}
-		gettimeofday(&d->tab_philo[i].last, NULL);
+		env->philos[i].id = i;
+		env->philos[i].env = env;
+		env->philos[i].l_fork = last_fork;
+		env->philos[i].eat = 0;
+		if (env->number_of_philosophers == i + 1)
+			env->philos[i].r_fork = env->philos[0].l_fork;
+		else
+			env->philos[i].r_fork = init_fork();
+		last_fork = env->philos[i].r_fork;
+		env->philos[i].last = gettime(env);
+		if (pthread_mutex_init(&env->philos[i].eat_mutex, NULL))
+			exit(EXIT_FAILURE);
 		i++;
 	}
-	i = 0;
-	while (i < d->env->nb_philo)
-	{
-		if (pthread_create(&d->tab_philo[i].thread, NULL, &nothing, (void *)&d->tab_philo[i]))
-			error(d);
-		// pthread_detach(d->tab_philo[i].thread);
-		i++;
-	}
+	launch_thread(env);
+	pthread_mutex_unlock(&env->env_mutex);
 }
 
 int	main(int argc, char *argv[])
 {
-	t_data	d;
-	int	i;
+	t_env	env;
+	int		i;
 
 	if (argc != 5 && argc != 6)
 	{
-		printf("Invalid Format\n");
+		printf("Invalid Arguments\n");
 		return (1);
 	}
-	// printf("yo\n");
-	d = init_data(argc, argv);
-	launch_thread(&d);
+	env = init_env(argc, argv);
+	if (env.number_of_philosophers == 1)
+		return (main_one(env));
+	launch_philo(&env);
+	if (pthread_create(&env.checker, NULL, &checker, &env))
+		exit(EXIT_FAILURE);
 	i = 0;
-	while (i < d.env->nb_philo)
+	while (i < env.number_of_philosophers)
 	{
-		usleep(d.env->time_to_die);
-		pthread_join(d.tab_philo[i].thread, NULL);
+		pthread_join(env.philos[i].thread, NULL);
 		i++;
 	}
-	freeall(&d);
-	return (1);
+	pthread_join(env.checker, NULL);
+	destroy_mutex(&env);
+	free(env.philos);
+	return (0);
 }

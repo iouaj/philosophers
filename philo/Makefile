@@ -1,13 +1,15 @@
 NAME = philo
 
-CC = cc
-CFLAGS = -Wall -Wextra -Werror -g -pthread
+CC = gcc
+CFLAGS = -Wall -Wextra -Werror
 
 FILES =	philo \
 		ft_atoi \
-		exit \
+		utils \
+		test \
 		action \
-		utils
+		one \
+		error
 
 SRC = $(addsuffix .c, $(FILES))
 
