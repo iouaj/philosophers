@@ -22,17 +22,24 @@ static int	is_wspace(char c)
 static int	is_nbr(char c)
 {
 	if (c >= '0' && c <= '9')
-	{
 		return (1);
-	}
 	return (0);
+}
+
+static int	is_int(long int nb)
+{
+	if (nb > 2147483647)
+		return (0);
+	if (nb < -2147483648)
+		return (0);
+	return (1);
 }
 
 int	ft_atoi(const char *nptr)
 {
-	int	i;
-	int	nbr;
-	int	sign;
+	int			i;
+	long int	nbr;
+	int			sign;
 
 	i = 0;
 	nbr = 0;
@@ -50,5 +57,7 @@ int	ft_atoi(const char *nptr)
 		nbr = nbr * 10 + nptr[i] - 48;
 		i++;
 	}
-	return (nbr * sign);
+	if (!is_int(nbr))
+		return (0);
+	return ((int) nbr * sign);
 }
