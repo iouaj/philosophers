@@ -1,15 +1,13 @@
-NAME = philo
+NAME = philo_bonus
 
 CC = cc
 CFLAGS = -Wall -Wextra -Werror
 
-FILES =	philo \
+FILES =	philo_bonus \
 		ft_atoi \
-		utils \
-		test \
 		action \
-		one \
-		error
+		utils \
+		check
 
 SRC = $(addsuffix .c, $(FILES))
 
