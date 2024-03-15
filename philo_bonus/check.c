@@ -6,72 +6,76 @@
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/13 15:12:42 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/03/13 19:26:41 by iouajjou         ###   ########.fr       */
+/*   Updated: 2024/03/15 18:43:06 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo_bonus.h"
 
+void *should_stop(void *arg)
+{
+	t_philo *philo;
+
+	philo = (t_philo *) arg;
+	// sem_wait(philo->env->stop)
+	// if (philo->env->stop->__align != philo->env->nb_philo)
+	// 	philo->dead = 1;
+	sem_wait(philo->env->stop);
+	philo->dead = 1;
+	sem_post(philo->env->stop);
+	return (NULL);
+}
+
+// int	someone_dead(t_philo *philo)
+// {
+// 	// printf("%ld ++++++++++++++++\n", philo->env->stop->__align);
+// 	if (philo->env->stop->__align != philo->env->nb_philo)
+// 	{
+// 		printf("%ld ++++++++++++++++++++++++++++++\n", philo->env->stop->__align);
+// 		if (philo->env->stop->__align == philo->env->nb_philo - 1)
+// 			print(philo, "died\n");
+// 		return (1);
+// 	}
+// 	return (0);
+// }
+
+int	someone_dead(t_philo *philo)
+{
+	return (philo->dead);
+}
+
 void *check(void *arg)
 {
 	t_philo				*philo;
 	long unsigned int	to_die;
+	pthread_t			check_others;
 
 	philo = (t_philo *) arg;
 	to_die = philo->env->time_to_die;
-	while (1)
+	if (philo->env->nb_philo != 1)
 	{
-		// printf("%d Check\n", philo->id);
-		if (gettime(philo->env) - philo->last >= to_die)
+		if (pthread_create(&check_others, NULL, &should_stop, philo))
+			exit(EXIT_FAILURE);
+	}
+	while (!someone_dead(philo))
+	{
+			// printf("%ld-------------+++++++++---------\n", philo->env->dead->__align);
+		sem_wait(philo->env->dead);
+		// printf("%d check\n", philo->id);
+		if (!someone_dead(philo) && gettime(philo->env) >= philo->last + to_die)
 		{
-			print(philo, "is dead\n");
-			philo->dead = 1;
+			print(philo, "died\n");
+			// printf("%ld-----------------------------\n", philo->env->dead->__align);
 			sem_post(philo->env->stop);
-			break ;
+			philo->dead = 1;
 		}
 		if (philo->eat == philo->env->nb_must_eat)
-			break ;
+			philo->dead = 1;
+		// printf("%d fin check\n", philo->id);
+		sem_post(philo->env->dead);
 	}
+	if (philo->env->nb_philo != 1)
+		pthread_detach(check_others);
 	return (NULL);
 }
 
-// static int	dead(t_env *e)
-// {
-// 	int					i;
-// 	int					count;
-// 	long unsigned int	to_die;
-
-// 	i = 0;
-// 	count = 0;
-// 	to_die = (long unsigned int)e->time_to_die;
-// 	while (i < e->nb_philo)
-// 	{
-// 		if (e->philos[i].eat != e->nb_must_eat)
-// 		{
-// 			if (gettime(e) - e->philos[i].last >= to_die)
-// 			{
-// 				e->dead = 1;
-// 				printf("%ld %d is dead\n", gettime(e), i);
-// 				return (-1);
-// 			}
-// 		}
-// 		else
-// 			count++;
-// 		i++;
-// 	}
-// 	return (count);
-// }
-
-// int	is_philo_dead(t_env *env)
-// {
-// 	int	count;
-
-// 	if (env->dead)
-// 		return (1);
-// 	count = dead(env);
-// 	if (count == env->nb_philo)
-// 		return (2);
-// 	if (count == -1)
-// 		return (1);
-// 	return (0);
-// }

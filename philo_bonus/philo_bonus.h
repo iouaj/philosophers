@@ -6,7 +6,7 @@
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/12 16:50:18 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/03/13 19:14:55 by iouajjou         ###   ########.fr       */
+/*   Updated: 2024/03/15 18:39:38 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ typedef struct s_philo
 {
 	int	id;
 	int	eat;
-	unsigned long int	last;
+	long unsigned int	last;
 	int					dead;
 	struct s_env		*env;
 }	t_philo;
@@ -45,10 +45,13 @@ typedef struct s_env
 	sem_t	*fork;
 	sem_t	*message;
 	sem_t	*stop;
+	sem_t	*dead;
 	struct timeval	start;
 	pthread_t	checker;
 }	t_env;
 
+
+int	someone_dead(t_philo *philo);
 void	print(t_philo *philo, const char *str);
 void	*check(void *env);
 int	ft_atoi(const char *nptr);

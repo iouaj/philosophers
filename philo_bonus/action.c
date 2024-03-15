@@ -6,7 +6,7 @@
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/13 14:00:19 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/03/13 19:22:05 by iouajjou         ###   ########.fr       */
+/*   Updated: 2024/03/15 18:29:32 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,18 @@
 
 void	eat(t_env *e, t_philo *philo)
 {
+	if (someone_dead(philo))
+		return ;
+	if (philo->env->nb_philo == 1)
+	{
+		print(philo, "has taken a fork\n");
+		usleep(philo->env->time_to_die * 1000);
+		return ;
+	}
 	sem_wait(e->fork);
-	print(philo, "has taken fork\n");
+	print(philo, "has taken a fork\n");
 	sem_wait(e->fork);
-	print(philo, "has taken fork\n");
+	print(philo, "has taken a fork\n");
 	philo->last = gettime(e);
 	print(philo, "is eating\n");
 	usleep(e->time_to_eat * 1000);
@@ -29,6 +37,8 @@ void	eat(t_env *e, t_philo *philo)
 
 void	sleeping(t_env *e, t_philo *philo)
 {
+	if (someone_dead(philo))
+		return ;
 	print(philo, "is sleeping\n");
 	usleep(e->time_to_sleep * 1000);
 }

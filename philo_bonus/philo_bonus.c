@@ -6,7 +6,7 @@
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/12 16:50:05 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/03/13 19:35:47 by iouajjou         ###   ########.fr       */
+/*   Updated: 2024/03/15 18:43:28 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,9 +17,11 @@ void	init_sem(t_env *e)
 	sem_unlink("fork");
 	sem_unlink("message");
 	sem_unlink("stop");
+	sem_unlink("dead");
 	e->fork = sem_open("fork", O_CREAT, 0600, e->nb_philo);
 	e->message = sem_open("message", O_CREAT, 0600, 1);
 	e->stop = sem_open("stop", O_CREAT, 0600, 1);
+	e->dead = sem_open("dead", O_CREAT, 0600, 1);
 }
 
 static t_env	init_env(int argc, char *argv[])
@@ -59,11 +61,10 @@ t_philo	init_philo(t_env *e, int id)
 	return (philo);
 }
 
-int	philo(t_env *e, int id)
+void	philo(t_env *e, int id)
 {
 	t_philo philo;
 
-	printf("Process %d\n", id);
 	philo = init_philo(e, id);
 	if (pthread_create(&e->checker, NULL, &check, &philo))
 	{
@@ -71,16 +72,16 @@ int	philo(t_env *e, int id)
 	}
 	print(&philo, "is thinking\n");
 	usleep(id % 2 * e->time_to_eat / 4 * 1000);
-	while (!philo.dead && philo.eat != philo.env->nb_must_eat)
+	while (!someone_dead(&philo) && philo.eat != philo.env->nb_must_eat)
 	{
 		eat(e, &philo);
 		sleeping(e, &philo);
 		print(&philo, "is thinking\n");
+		if (philo.env->nb_philo % 2 == 1
+			&& philo.env->time_to_eat >= philo.env->time_to_sleep)
+			usleep(philo.env->time_to_eat * 1000);
 	}
 	pthread_join(e->checker, NULL);
-	if (philo.dead)
-		return (0);
-	return (1);
 }
 
 void	waitall(t_env *e)
@@ -91,11 +92,9 @@ void	waitall(t_env *e)
 	i = 0;
 	while (i < e->nb_philo)
 	{
-		waitpid(e->philos[i], &status, 0);
-		printf("STATUS : %d", status);
+		waitpid(e->philos[i], &status, WUNTRACED);
 		i++;
 	}
-	sem_post(e->stop);
 }
 
 int	create_process(t_env *e)
@@ -110,6 +109,7 @@ int	create_process(t_env *e)
 		if (!pid)
 		{
 			philo(e, i);
+			break ;
 		}
 		e->philos[i] = pid;
 		i++;
@@ -133,7 +133,6 @@ int	main(int argc, char *argv[])
 {
 	t_env	e;
 	int		pid;
-	int		ret;
 
 	if (argc != 5 && argc != 6)
 	{
@@ -141,19 +140,15 @@ int	main(int argc, char *argv[])
 		return (1);
 	}
 	e = init_env(argc, argv);
-	printf("MUST EAT %d\n", e.nb_must_eat);
 	init_sem(&e);
 	sem_wait(e.stop);
 	pid = create_process(&e);
 	if (pid)
-	{
 		waitall(&e);
-		sem_wait(e.stop);
-		kill_everyone(&e);
-	}
 	free(e.philos);
 	sem_close(e.fork);
 	sem_close(e.stop);
 	sem_close(e.message);
+	sem_close(e.dead);
 	return (0);
 }
