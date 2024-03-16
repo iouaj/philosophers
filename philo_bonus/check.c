@@ -6,7 +6,7 @@
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/13 15:12:42 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/03/15 18:43:06 by iouajjou         ###   ########.fr       */
+/*   Updated: 2024/03/16 01:00:23 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,6 +49,7 @@ void *check(void *arg)
 	t_philo				*philo;
 	long unsigned int	to_die;
 	pthread_t			check_others;
+	int					i;
 
 	philo = (t_philo *) arg;
 	to_die = philo->env->time_to_die;
@@ -59,19 +60,20 @@ void *check(void *arg)
 	}
 	while (!someone_dead(philo))
 	{
-			// printf("%ld-------------+++++++++---------\n", philo->env->dead->__align);
 		sem_wait(philo->env->dead);
-		// printf("%d check\n", philo->id);
 		if (!someone_dead(philo) && gettime(philo->env) >= philo->last + to_die)
 		{
 			print(philo, "died\n");
-			// printf("%ld-----------------------------\n", philo->env->dead->__align);
-			sem_post(philo->env->stop);
+			i = 0;
+			while (i < philo->env->nb_philo)
+			{
+				sem_post(philo->env->stop);
+				i++;
+			}
 			philo->dead = 1;
 		}
 		if (philo->eat == philo->env->nb_must_eat)
 			philo->dead = 1;
-		// printf("%d fin check\n", philo->id);
 		sem_post(philo->env->dead);
 	}
 	if (philo->env->nb_philo != 1)
