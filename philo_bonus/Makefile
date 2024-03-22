@@ -7,7 +7,8 @@ FILES =	philo_bonus \
 		ft_atoi \
 		action \
 		utils \
-		check
+		check \
+		init
 
 SRC = $(addsuffix .c, $(FILES))
 

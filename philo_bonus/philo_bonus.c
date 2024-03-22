@@ -6,23 +6,11 @@
 /*   By: iouajjou <iouajjou@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/03/12 16:50:05 by iouajjou          #+#    #+#             */
-/*   Updated: 2024/03/15 18:43:28 by iouajjou         ###   ########.fr       */
+/*   Updated: 2024/03/22 16:37:04 by iouajjou         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo_bonus.h"
-
-void	init_sem(t_env *e)
-{
-	sem_unlink("fork");
-	sem_unlink("message");
-	sem_unlink("stop");
-	sem_unlink("dead");
-	e->fork = sem_open("fork", O_CREAT, 0600, e->nb_philo);
-	e->message = sem_open("message", O_CREAT, 0600, 1);
-	e->stop = sem_open("stop", O_CREAT, 0600, 1);
-	e->dead = sem_open("dead", O_CREAT, 0600, 1);
-}
 
 static t_env	init_env(int argc, char *argv[])
 {
@@ -37,7 +25,8 @@ static t_env	init_env(int argc, char *argv[])
 	else
 		e.nb_must_eat = -1;
 	e.philos = malloc(sizeof(t_philo) * e.nb_philo);
-	if (!e.philos)
+	e.pid = malloc(sizeof(int) * e.nb_philo);
+	if (!e.philos || !e.pid)
 	{
 		printf("[Error] Alloc' failed\n");
 		exit(EXIT_FAILURE);
@@ -46,85 +35,39 @@ static t_env	init_env(int argc, char *argv[])
 	return (e);
 }
 
-t_philo	init_philo(t_env *e, int id)
+void	philo(t_env *e, int id)
 {
 	t_philo	philo;
 
-	philo.id = id;
-	philo.eat = 0;
-	if (e->nb_must_eat == -1)
-		philo.eat = -1;
-	philo.eat = 0;
-	philo.dead = 0;
-	philo.env = e;
-	philo.last = gettime(e);
-	return (philo);
-}
-
-void	philo(t_env *e, int id)
-{
-	t_philo philo;
-
-	philo = init_philo(e, id);
+	philo = e->philos[id];
+	philo.sem_eat = sem_open("eat", O_CREAT, 0600, 1);
 	if (pthread_create(&e->checker, NULL, &check, &philo))
 	{
+		sem_wait(philo.env->message);
 		printf("[Error] Thread failed\n");
+		exit(EXIT_FAILURE);
 	}
 	print(&philo, "is thinking\n");
-	usleep(id % 2 * e->time_to_eat / 4 * 1000);
+	usleep(id % 2 * (e->time_to_eat / 4) * 1000);
 	while (!someone_dead(&philo) && philo.eat != philo.env->nb_must_eat)
 	{
 		eat(e, &philo);
 		sleeping(e, &philo);
 		print(&philo, "is thinking\n");
-		if (philo.env->nb_philo % 2 == 1
-			&& philo.env->time_to_eat >= philo.env->time_to_sleep)
-			usleep(philo.env->time_to_eat * 1000);
 	}
 	pthread_join(e->checker, NULL);
+	sem_close(philo.sem_eat);
 }
 
 void	waitall(t_env *e)
 {
-	int i;
+	int	i;
 	int	status;
 
 	i = 0;
 	while (i < e->nb_philo)
 	{
-		waitpid(e->philos[i], &status, WUNTRACED);
-		i++;
-	}
-}
-
-int	create_process(t_env *e)
-{
-	int	pid;
-	int	i;
-
-	i = 0;
-	while (i < e->nb_philo)
-	{
-		pid = fork();
-		if (!pid)
-		{
-			philo(e, i);
-			break ;
-		}
-		e->philos[i] = pid;
-		i++;
-	}
-	return (pid);
-}
-
-void	kill_everyone(t_env *e)
-{
-	int	i;
-
-	i = 0;
-	while (i < e->nb_philo)
-	{
-		kill(e->philos[i], 2);
+		waitpid(e->pid[i], &status, WUNTRACED);
 		i++;
 	}
 }
@@ -141,11 +84,12 @@ int	main(int argc, char *argv[])
 	}
 	e = init_env(argc, argv);
 	init_sem(&e);
-	sem_wait(e.stop);
+	create_philo(&e);
 	pid = create_process(&e);
 	if (pid)
 		waitall(&e);
 	free(e.philos);
+	free(e.pid);
 	sem_close(e.fork);
 	sem_close(e.stop);
 	sem_close(e.message);
